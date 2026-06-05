@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Dino Base",
   description: "Dino Base",
+  other: {
+    "base:app_id": "6a2315c8ab28df7fd2fc1691",
+  },
 };
 
 export default function RootLayout({
