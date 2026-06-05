@@ -22,6 +22,7 @@ import {
   type CharacterId,
 } from './characters';
 import CharacterCycleButton from './CharacterCycleButton';
+import { isUserRejection, shortErrorMessage } from './errors';
 import { LEADERBOARD_ADDRESS, leaderboardAbi } from '@/config/leaderboard';
 
 type GameState = 'idle' | 'running' | 'gameOver';
@@ -147,6 +148,11 @@ export default function GameScreen() {
 
   const canStart = isConnected && onBase && !isStarting;
 
+  // A user-rejected signature isn't an error condition — they cancelled
+  // intentionally. Hide it from the UI and let them retry naturally.
+  const startRejected = isUserRejection(startError);
+  const realStartError = startError && !startRejected ? startError : null;
+
   // Compute canvas overlay prompts based on gating state.
   let idlePrompt = 'PRESS SPACE OR TAP TO START';
   let gameOverPrompt = 'PRESS SPACE OR TAP TO RESTART';
@@ -159,9 +165,9 @@ export default function GameScreen() {
   } else if (isStarting) {
     idlePrompt = 'STARTING…';
     gameOverPrompt = 'STARTING…';
-  } else if (startError) {
-    idlePrompt = 'SIGN TO START — TAP TO RETRY';
-    gameOverPrompt = 'SIGN TO START — TAP TO RETRY';
+  } else if (realStartError) {
+    idlePrompt = 'START FAILED — TAP TO RETRY';
+    gameOverPrompt = 'START FAILED — TAP TO RETRY';
   }
 
   const selectionLocked = gameState === 'running' || isStarting;
@@ -191,7 +197,7 @@ export default function GameScreen() {
             type="button"
             onClick={() => switchChain({ chainId: base.id })}
             disabled={isSwitching}
-            className="w-full font-mono text-base tracking-widest py-4 px-5 bg-black text-white border-2 border-black active:bg-white active:text-black transition-colors disabled:opacity-50"
+            className="self-start font-mono text-[11px] sm:text-base tracking-widest py-2 px-3 sm:py-4 sm:px-5 bg-black text-white border-2 border-black active:bg-white active:text-black transition-colors disabled:opacity-50"
           >
             {isSwitching ? 'SWITCHING…' : 'SWITCH TO BASE'}
           </button>
@@ -212,9 +218,9 @@ export default function GameScreen() {
             )}
           </div>
         )}
-        {startError && (
+        {realStartError && (
           <p className="font-mono text-xs text-black/70 break-words leading-snug">
-            START FAILED: {startError.message}
+            START FAILED — {shortErrorMessage(realStartError)}
           </p>
         )}
       </section>

@@ -26,8 +26,13 @@ const GRAY = '#9CA3AF';
 const WHITE = '#FFFFFF';
 
 const W = 800;
-const H = 240;
-const GROUND_Y = 200;
+// Desktop keeps the original short letterbox; mobile gets a taller world so the
+// canvas takes more vertical space at narrow viewports. GROUND_Y is always
+// anchored 40 px from the bottom — game logic doesn't care about total height.
+const DESKTOP_H = 240;
+const MOBILE_H = 400;
+const GROUND_OFFSET = 40;
+const DESKTOP_GROUND_Y = DESKTOP_H - GROUND_OFFSET;
 
 const GRAVITY = 2600;
 const FAST_FALL_BONUS = 3000;
@@ -73,12 +78,12 @@ type GameRef = {
   blink: number;
 };
 
-function freshGame(): GameRef {
+function freshGame(groundY: number): GameRef {
   return {
     state: 'idle',
     score: 0,
     speed: SPEED_INIT,
-    dinoY: GROUND_Y - DINO_H,
+    dinoY: groundY - DINO_H,
     dinoVy: 0,
     ducking: false,
     legPhase: 0,
@@ -161,8 +166,9 @@ export default function DinoGame({
   characterId = DEFAULT_CHARACTER_ID,
 }: DinoGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameRef = useRef<GameRef>(freshGame());
+  const gameRef = useRef<GameRef>(freshGame(DESKTOP_GROUND_Y));
   const highScoreRef = useRef(0);
+  const dimsRef = useRef({ H: DESKTOP_H, GROUND_Y: DESKTOP_GROUND_Y });
 
   // Mirror frequently-changing props into refs so the stable handlers
   // (and the rAF render loop) always see fresh values without re-binding.
@@ -196,7 +202,7 @@ export default function DinoGame({
   useEffect(() => {
     if (startToken === 0) return;
     const g = gameRef.current;
-    Object.assign(g, freshGame());
+    Object.assign(g, freshGame(dimsRef.current.GROUND_Y));
     g.state = 'running';
   }, [startToken]);
 
@@ -261,8 +267,31 @@ export default function DinoGame({
     if (!ctx) return;
 
     canvas.width = W;
-    canvas.height = H;
     ctx.imageSmoothingEnabled = false;
+
+    const mq =
+      typeof window !== 'undefined'
+        ? window.matchMedia('(max-width: 639px)')
+        : null;
+
+    const applyDims = () => {
+      const isMobile = mq?.matches ?? false;
+      const H = isMobile ? MOBILE_H : DESKTOP_H;
+      const GROUND_Y = H - GROUND_OFFSET;
+      const prev = dimsRef.current;
+      const dy = GROUND_Y - prev.GROUND_Y;
+      dimsRef.current = { H, GROUND_Y };
+      canvas.height = H;
+      ctx.imageSmoothingEnabled = false; // resetting canvas size resets context state
+      if (dy !== 0) {
+        const g = gameRef.current;
+        g.dinoY += dy;
+        for (const o of g.obstacles) o.y += dy;
+      }
+    };
+
+    applyDims();
+    if (mq) mq.addEventListener('change', applyDims);
 
     let rafId = 0;
     let mounted = true;
@@ -270,6 +299,7 @@ export default function DinoGame({
     let accumulator = 0;
 
     const spawn = () => {
+      const { GROUND_Y } = dimsRef.current;
       const g = gameRef.current;
       const t = Math.min(1, g.score / 1500);
       const birdAllowed = g.score > 200;
@@ -311,6 +341,7 @@ export default function DinoGame({
     };
 
     const tick = (dt: number) => {
+      const { GROUND_Y } = dimsRef.current;
       const g = gameRef.current;
       g.blink += dt;
 
@@ -392,6 +423,7 @@ export default function DinoGame({
     };
 
     const drawCharacter = (g: GameRef) => {
+      const { GROUND_Y } = dimsRef.current;
       const char = CHARACTERS[characterIdRef.current] ?? CHARACTERS[DEFAULT_CHARACTER_ID];
 
       if (g.state === 'gameOver') {
@@ -442,6 +474,7 @@ export default function DinoGame({
     };
 
     const render = () => {
+      const { H, GROUND_Y } = dimsRef.current;
       const g = gameRef.current;
 
       ctx.fillStyle = WHITE;
@@ -542,6 +575,7 @@ export default function DinoGame({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
+      if (mq) mq.removeEventListener('change', applyDims);
     };
   }, [handleJumpPress, setDuck]);
 
@@ -550,8 +584,8 @@ export default function DinoGame({
       <canvas
         ref={canvasRef}
         aria-label="Dino runner game"
-        className="block w-full h-auto bg-white border-2 border-black touch-none"
-        style={{ imageRendering: 'pixelated', aspectRatio: '800 / 240' }}
+        className="block w-full h-auto bg-white border-2 border-black touch-none aspect-[800/400] sm:aspect-[800/240]"
+        style={{ imageRendering: 'pixelated' }}
         onPointerDown={onCanvasPointerDown}
         onPointerUp={releaseHold}
         onPointerCancel={releaseHold}

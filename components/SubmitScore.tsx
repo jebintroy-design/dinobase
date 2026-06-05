@@ -9,6 +9,7 @@ import {
   useWriteContract,
 } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
+import { isUserRejection, shortErrorMessage } from './errors';
 import { LEADERBOARD_ADDRESS, leaderboardAbi } from '@/config/leaderboard';
 
 export default function SubmitScore({ score }: { score: number }) {
@@ -85,7 +86,8 @@ export default function SubmitScore({ score }: { score: number }) {
     ? 'CONFIRMING…'
     : `SUBMIT SCORE ${score}`;
 
-  const err = writeError ?? receiptError;
+  const rawErr = writeError ?? receiptError;
+  const err = rawErr && !isUserRejection(rawErr) ? rawErr : null;
 
   return (
     <div className="flex flex-col items-start gap-2">
@@ -106,7 +108,7 @@ export default function SubmitScore({ score }: { score: number }) {
       </button>
       {err && (
         <p className="font-mono text-xs text-black/70 max-w-md break-words leading-snug">
-          {err.message}
+          SUBMIT FAILED — {shortErrorMessage(err)}
         </p>
       )}
     </div>
