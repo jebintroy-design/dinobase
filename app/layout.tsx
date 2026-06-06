@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   description: "Dino Base",
   other: {
     "base:app_id": "6a2315c8ab28df7fd2fc1691",
+    "base:builder_code": "bc_5f8e5q5h",
   },
 };
 
