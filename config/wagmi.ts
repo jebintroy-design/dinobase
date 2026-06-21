@@ -9,7 +9,13 @@ export const BUILDER_CODE_DATA_SUFFIX =
 
 export const wagmiConfig = createConfig({
   chains: [base],
-  connectors: [injected(), baseAccount({ appName: 'Dino Base' })],
+  connectors: [
+    injected(),
+    baseAccount({
+      appName: 'Dino Base',
+      preference: { attribution: { dataSuffix: BUILDER_CODE_DATA_SUFFIX } },
+    }),
+  ],
   storage: createStorage({ storage: cookieStorage }),
   ssr: true,
   transports: {
