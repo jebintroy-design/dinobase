@@ -24,6 +24,7 @@ import {
 import CharacterCycleButton from './CharacterCycleButton';
 import { isUserRejection, shortErrorMessage } from './errors';
 import { LEADERBOARD_ADDRESS, leaderboardAbi } from '@/config/leaderboard';
+import { BUILDER_CODE_DATA_SUFFIX } from '@/config/wagmi';
 
 type GameState = 'idle' | 'running' | 'gameOver';
 
@@ -104,6 +105,7 @@ export default function GameScreen() {
         address: LEADERBOARD_ADDRESS,
         abi: leaderboardAbi,
         functionName: 'startGame',
+        dataSuffix: BUILDER_CODE_DATA_SUFFIX,
       });
       // Broadcast succeeded — the tx hash is in `startHash` via wagmi state.
       // Start the run immediately; don't wait for onchain confirmation.
