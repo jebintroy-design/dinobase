@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { isUserRejection, shortErrorMessage } from './errors';
 import { LEADERBOARD_ADDRESS, leaderboardAbi } from '@/config/leaderboard';
+import { BUILDER_CODE_DATA_SUFFIX } from '@/config/wagmi';
 
 export default function SubmitScore({ score }: { score: number }) {
   const chainId = useChainId();
@@ -99,6 +100,7 @@ export default function SubmitScore({ score }: { score: number }) {
             abi: leaderboardAbi,
             functionName: 'submitScore',
             args: [BigInt(score)],
+            dataSuffix: BUILDER_CODE_DATA_SUFFIX,
           })
         }
         disabled={isSigning || isMining}
